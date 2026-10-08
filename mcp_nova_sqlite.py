@@ -13,6 +13,7 @@ through a transaction that is rolled back on error.
 """
 import os
 import pathlib
+import re
 import sqlite3
 
 from mcp.server.mcpserver import MCPServer
@@ -27,6 +28,18 @@ MAX_BYTES = 64_000_000  # 64 MB ceiling; refuse to open anything larger
 
 FORBIDDEN = ("attach", "detach", "pragma", "vacuum", "drop ", "alter ",
              "create ", "replac", "insert ", "update ", "delete ", "replace ")
+
+
+def _normalized(sql: str) -> str:
+    """Lowercase, strip comments, collapse whitespace — for guard checks.
+
+    Without this, `DROP/**/TABLE` or `drop\\tusers` slips past a plain
+    substring scan. The mode=ro connection remains the true guard; this
+    just makes the scan honest.
+    """
+    s = re.sub(r"/\*.*?\*/", " ", sql, flags=re.S)
+    s = re.sub(r"--[^\n]*", " ", s)
+    return re.sub(r"\s+", " ", s).strip().lower()
 
 
 def _resolve(db: str) -> pathlib.Path:
@@ -135,7 +148,7 @@ def schema(db: str, table: str = "") -> dict:
 def query(db: str, sql: str, params: str = "") -> dict:
     """Run a read-only SQL query. SELECT/WITH only, capped at 500 rows."""
     s = sql.strip().rstrip(";")
-    low = s.lower()
+    low = _normalized(s)
     if not (low.startswith("select") or low.startswith("with")):
         return {"ok": False,
                 "error": "read-only tool: statement must start with SELECT or WITH"}

@@ -17,5 +17,4 @@ pip install mcp
 Point any MCP host (e.g. OpenCode, Claude Code) at these files over stdio.
 Each server is one file with no other dependencies.
 
-Maintained in Nova by `system_agent_real` (system integration). Extracted
-from the Nova monorepo as a portfolio piece.
+Part of [Nova](https://github.com/helloahad661-pixel/Nova), my macOS assistant system — `system_agent_real` looks after this piece.
